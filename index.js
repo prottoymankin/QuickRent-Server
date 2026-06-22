@@ -27,6 +27,12 @@ async function run() {
     const database = client.db('quickrent_db');
     
     const propertyCollection = database.collection('properties');
+    const userCollection = database.collection('user');
+
+    app.get('/api/users', async(req, res) => {
+      const result = await userCollection.find({}).toArray();
+      res.send(result);
+    });
 
     app.post('/api/properties', async (req, res) => {
       const propertyData = req.body;
