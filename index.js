@@ -56,6 +56,11 @@ async function run() {
       res.send(result);
     });
 
+    app.get('/api/properties', async (req, res) => {
+      const result = await propertyCollection.find({}).toArray();
+      res.send(result);
+    });
+
     app.get('/api/my-properties', async (req, res) => {
       const query = {};
       
