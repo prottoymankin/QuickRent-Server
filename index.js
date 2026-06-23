@@ -1,3 +1,6 @@
+const dns = require('node:dns');
+dns.setServers(['1.1.1.1', '1.0.0.1']); 
+
 const cors = require('cors');
 const dotenv = require('dotenv');
 const express = require('express');
@@ -99,6 +102,13 @@ async function run() {
 
     app.get('/api/properties/featured', async (req, res) => {
       const result = await propertyCollection.find({}).sort({createdAt: -1}).limit(6).toArray();
+      res.send(result);
+    });
+
+    app.get('/api/properties/:id', async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await propertyCollection.findOne(query);
       res.send(result);
     });
 
