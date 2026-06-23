@@ -29,8 +29,31 @@ async function run() {
     
     const database = client.db('quickrent_db');
     
+    const favoritePropertyCollection = database.collection('favorites');
     const propertyCollection = database.collection('properties');
     const userCollection = database.collection('user');
+
+    app.post('/api/favorites', async (req, res) => {
+      const existing = await favoritePropertyCollection.findOne({
+        userId: req.body.userId,
+        propertyId: req.body.propertyId
+      });
+
+      if (existing) {
+        return res.status(409).send({
+          message: "Already added to favorite"
+        });
+      }
+
+      const favoritePropertyData = {
+        ...req.body,
+        createdAt: new Date()
+      };
+
+      const result = await favoritePropertyCollection.insertOne(favoritePropertyData);
+
+      res.send(result);
+    });
 
     app.get('/api/users', async(req, res) => {
       const result = await userCollection.find({}).toArray();
