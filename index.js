@@ -66,13 +66,23 @@ async function run() {
     })
 
     app.post('/api/properties', async (req, res) => {
-      const propertyData = req.body;
+      const propertyData = {
+        ...req.body,
+        createdAt: new Date()
+      };
+
       const result = await propertyCollection.insertOne(propertyData);
       res.send(result);
     });
 
     app.get('/api/properties', async (req, res) => {
-      const result = await propertyCollection.find({}).toArray();
+      const result = await propertyCollection.find({}).sort({ createdAt: -1 }).toArray();
+      res.send(result);
+    });
+
+    app.get('/api/properties/approved', async (req, res) => {
+      const query = { status: 'Approved' };
+      const result = await propertyCollection.find(query).sort({ createdAt: -1 }).toArray();
       res.send(result);
     });
 
@@ -83,7 +93,7 @@ async function run() {
         query.ownerId = req.query.ownerId;
       }
       
-      const result = await propertyCollection.find(query).toArray();
+      const result = await propertyCollection.find(query).sort({ createdAt: -1 }).toArray();
       res.send(result);
     });
 
