@@ -50,6 +50,21 @@ async function run() {
       res.send(result);
     });
 
+    app.patch('/api/properties', async (req, res) => {
+      const { propertyId, newStatus } = req.body;
+
+      const query = { _id: new ObjectId(propertyId) };
+
+      const update = {
+        $set: {
+          status: newStatus
+        }
+      };
+
+      const result = await propertyCollection.updateOne(query, update);
+      res.send(result);
+    })
+
     app.post('/api/properties', async (req, res) => {
       const propertyData = req.body;
       const result = await propertyCollection.insertOne(propertyData);
