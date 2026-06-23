@@ -1,7 +1,7 @@
 const cors = require('cors');
 const dotenv = require('dotenv');
 const express = require('express');
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 
 dotenv.config();
 
@@ -31,6 +31,22 @@ async function run() {
 
     app.get('/api/users', async(req, res) => {
       const result = await userCollection.find({}).toArray();
+      res.send(result);
+    });
+
+    app.patch('/api/users', async(req, res) => {
+      const { userId, newRole } = req.body;
+
+      const query = { _id: new ObjectId(userId) };
+
+      const update = {
+        $set: {
+          role: newRole
+        }
+      };
+
+      const result = await userCollection.updateOne(query, update);
+
       res.send(result);
     });
 
