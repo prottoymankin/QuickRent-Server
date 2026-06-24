@@ -95,6 +95,15 @@ async function run() {
       res.send(result);
     });
 
+    app.delete('/api/favorites', async (req, res) => {
+      const { userId, propertyId } = req.query;
+      const result = await favoritePropertyCollection.deleteOne({
+        userId,
+        propertyId
+      });
+      res.send(result);
+    });
+
     app.get('/api/users', async(req, res) => {
       const result = await userCollection.find({}).toArray();
       res.send(result);
