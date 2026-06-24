@@ -33,6 +33,22 @@ async function run() {
     const propertyCollection = database.collection('properties');
     const userCollection = database.collection('user');
 
+    app.get('/api/favorites/:userId', async (req, res) => {
+      const userId = req.params.userId;
+
+      const favorites = await favoritePropertyCollection.find({userId}).toArray();
+
+      const propertyIds = favorites.map(favorite => new ObjectId(favorite.propertyId));
+
+      const properties = await propertyCollection.find({
+        _id: {
+          $in: propertyIds
+        }
+      }).toArray();
+
+      res.send(properties);
+    });
+
     app.post('/api/favorites', async (req, res) => {
       const existing = await favoritePropertyCollection.findOne({
         userId: req.body.userId,
