@@ -29,9 +29,20 @@ async function run() {
     
     const database = client.db('quickrent_db');
     
+    const bookingCollection = database.collection('bookings');
     const favoritePropertyCollection = database.collection('favorites');
     const propertyCollection = database.collection('properties');
     const userCollection = database.collection('user');
+
+    app.post ('/api/bookings', async (req, res) => {
+      const bookingData = {
+        ...req.body,
+        createdAt: new Date()
+      };
+
+      const result = await bookingCollection.insertOne(bookingData);
+      res.send(result);
+    });
 
     app.get('/api/favorites/:userId', async (req, res) => {
       const userId = req.params.userId;
