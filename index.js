@@ -44,6 +44,19 @@ async function run() {
       res.send(result);
     });
 
+    app.get('/api/bookings/:id', async (req, res) => {
+      const id = req.params.id;
+
+      const query = { tenantId: id};
+
+      const result = await bookingCollection
+        .find(query)
+        .sort({createdAt: -1})
+        .toArray();
+
+      res.send(result);
+    });
+
     app.get('/api/favorites/:userId', async (req, res) => {
       const userId = req.params.userId;
 
