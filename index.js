@@ -177,7 +177,21 @@ async function run() {
 
       const result = await propertyCollection.updateOne(query, update);
       res.send(result);
-    })
+    });
+
+    app.patch('/api/properties/:id', async (req, res) => {
+      const id = req.params.id;
+
+      const update = req.body;
+
+      const query = { _id: new ObjectId(id) };
+
+      const result = await propertyCollection.updateOne(query, {
+        $set: update
+      });
+      
+      res.send(result);
+    });
 
     app.post('/api/properties', async (req, res) => {
       const propertyData = {
