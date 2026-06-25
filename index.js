@@ -112,6 +112,44 @@ async function run() {
       res.send(result);
     });
 
+    app.get('/api/owners/:id/monthly-earnings', async (req, res) => {
+      const id = req.params.id;
+
+      const bookings = await bookingCollection
+        .find({
+          ownerId: id,
+          bookingStatus: 'Approved',
+          paymentStatus: 'paid'
+        })
+        .toArray();
+
+      const monthlyEarnings = [
+        { month: 'Jan', earnings: 0 },
+        { month: 'Feb', earnings: 0 },
+        { month: 'Mar', earnings: 0 },
+        { month: 'Apr', earnings: 0 },
+        { month: 'May', earnings: 0 },
+        { month: 'Jun', earnings: 0 },
+        { month: 'Jul', earnings: 0 },
+        { month: 'Aug', earnings: 0 },
+        { month: 'Sep', earnings: 0 },
+        { month: 'Oct', earnings: 0 },
+        { month: 'Nov', earnings: 0 },
+        { month: 'Dec', earnings: 0 }
+      ];
+
+      bookings.forEach((booking) => {
+        const monthIndex = new Date(
+          booking.createdAt
+        ).getMonth();
+
+        monthlyEarnings[monthIndex].earnings +=
+          booking.propertyAmount;
+      });
+
+      res.send(monthlyEarnings);
+    });
+
     app.get('/api/favorites/:userId', async (req, res) => {
       const userId = req.params.userId;
 
