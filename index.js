@@ -87,6 +87,22 @@ async function run() {
       res.send(result);
     });
 
+    app.get('/api/bookings/:id/income', async (req, res) => {
+      const ownerId = req.params.id;
+
+      const bookings = await bookingCollection.find({
+        ownerId,
+        bookingStatus: 'Approved'
+      }).toArray();
+
+      const totalIncome = bookings.reduce(
+        (sum, booking) => sum + booking.propertyAmount,
+          0
+      );
+
+      res.send({ totalIncome });
+    });
+
     app.get('/api/bookings', async (req, res) => {
       const result = await bookingCollection
         .find({})
