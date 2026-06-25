@@ -87,6 +87,15 @@ async function run() {
       res.send(result);
     });
 
+    app.get('/api/bookings', async (req, res) => {
+      const result = await bookingCollection
+        .find({})
+        .sort({createdAt: -1})
+        .toArray();
+      
+      res.send(result);
+    });
+
     app.get('/api/favorites/:userId', async (req, res) => {
       const userId = req.params.userId;
 
