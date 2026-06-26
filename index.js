@@ -35,6 +35,16 @@ async function run() {
     const reviewCollection = database.collection('reviews');
     const userCollection = database.collection('user');
 
+    app.get('/api/reviews/featured', async (req, res) => {
+      const reviews = await reviewCollection.find({
+        rating: {
+          $gte: 4
+        }
+      }).limit(4).sort({createdAt: -1}).toArray();
+
+      res.send(reviews);
+    });
+
     app.post('/api/reviews', async (req, res) => {
       const reviewData = req.body;
       const result = await reviewCollection.insertOne(reviewData);
@@ -243,6 +253,20 @@ async function run() {
       };
 
       const result = await propertyCollection.updateOne(query, update);
+      res.send(result);
+    });
+
+    app.patch('/api/properties/:propertyId/rejection', async (req, res) => {
+      const propertyId = req.params.propertyId;
+
+      const query = { _id: new ObjectId(propertyId) };
+
+      const updateData = req.body;
+
+      const result = await propertyCollection.updateOne(query, {
+        $set: updateData
+      });
+
       res.send(result);
     });
 
