@@ -32,7 +32,20 @@ async function run() {
     const bookingCollection = database.collection('bookings');
     const favoritePropertyCollection = database.collection('favorites');
     const propertyCollection = database.collection('properties');
+    const reviewCollection = database.collection('reviews');
     const userCollection = database.collection('user');
+
+    app.post('/api/reviews', async (req, res) => {
+      const reviewData = req.body;
+      const result = await reviewCollection.insertOne(reviewData);
+      res.send(result);
+    });
+
+    app.get('/api/reviews/:propertyId', async (req, res) => {
+      const propertyId = req.params.propertyId;
+      const result = await reviewCollection.find({ propertyId }).toArray();
+      res.send(result);
+    });
 
     app.post ('/api/bookings', async (req, res) => {
       const bookingData = {
