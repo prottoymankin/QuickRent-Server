@@ -5,6 +5,7 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const express = require('express');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
+const { createRemoteJWKSet, jwtVerify } = require('jose-cjs');
 
 dotenv.config();
 
@@ -22,6 +23,46 @@ const client = new MongoClient(uri, {
     deprecationErrors: true,
   }
 });
+
+const JWKS = createRemoteJWKSet(new URL(
+  `${process.env.CLIENT_URL}/api/auth/jwks`
+));
+
+const verifyToken = async (req, res, next) => {
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader || !authHeader.startsWith('Bearer')) {
+    return res.status(401).json({ message: 'Unauthorized '});
+  }
+
+  const token = authHeader.split(" ")[1];
+
+  if (!token) {
+    return res.status(401).json({ message: 'Unauthorized '});
+  }
+
+  try {
+    const { payload } = await jwtVerify(token, JWKS);
+
+    req.user = payload;
+
+    next();
+  } catch (err) {
+    return res.status(401).json({ message: 'Unauthorized '});
+  }
+}
+
+const verifyRole = (...roles) => {
+  return (req, res, next) => {
+    if (!roles.includes(req.user.role)) {
+      return res.status(403).json({
+        message: "You do not have permission to perform this action.",
+      });
+    }
+
+    next();
+  };
+};
 
 async function run() {
   try {
@@ -57,7 +98,7 @@ async function run() {
       res.send(result);
     });
 
-    app.post ('/api/bookings', async (req, res) => {
+    app.post ('/api/bookings', verifyToken, verifyRole('Tenant'), async (req, res) => {
       const bookingData = {
         ...req.body,
         createdAt: new Date()
@@ -67,7 +108,7 @@ async function run() {
       res.send(result);
     });
 
-    app.patch('/api/bookings/:id', async (req, res) => {
+    app.patch('/api/bookings/:id', verifyToken, verifyRole('Owner'), async (req, res) => {
       const id = req.params.id;
       const { bookingStatus } = req.body;
       
@@ -84,7 +125,7 @@ async function run() {
       res.send(result);
     });
 
-    app.get('/api/bookings/:id', async (req, res) => {
+    app.get('/api/bookings/:id', verifyToken, verifyRole('Tenant'), async (req, res) => {
       const id = req.params.id;
 
       const query = { tenantId: id};
@@ -97,7 +138,7 @@ async function run() {
       res.send(result);
     });
 
-    app.get('/api/bookings/owner/:id', async (req, res) => {
+    app.get('/api/bookings/owner/:id', verifyToken, verifyRole('Owner'), async (req, res) => {
       const id = req.params.id;
       
       const query = { ownerId: id };
@@ -110,7 +151,7 @@ async function run() {
       res.send(result);
     });
 
-    app.get('/api/bookings/:id/income', async (req, res) => {
+    app.get('/api/bookings/:id/income', verifyToken, verifyRole('Owner'), async (req, res) => {
       const ownerId = req.params.id;
 
       const bookings = await bookingCollection.find({
@@ -126,7 +167,7 @@ async function run() {
       res.send({ totalIncome });
     });
 
-    app.get('/api/bookings', async (req, res) => {
+    app.get('/api/bookings', verifyToken, verifyRole('Admin'), async (req, res) => {
       const result = await bookingCollection
         .find({})
         .sort({createdAt: -1})
@@ -135,7 +176,7 @@ async function run() {
       res.send(result);
     });
 
-    app.get('/api/owners/:id/monthly-earnings', async (req, res) => {
+    app.get('/api/owners/:id/monthly-earnings', verifyToken, verifyRole('Owner'), async (req, res) => {
       const id = req.params.id;
 
       const bookings = await bookingCollection
@@ -173,7 +214,7 @@ async function run() {
       res.send(monthlyEarnings);
     });
 
-    app.get('/api/favorites/:userId', async (req, res) => {
+    app.get('/api/favorites/:userId', verifyToken, verifyRole('Tenant'), async (req, res) => {
       const userId = req.params.userId;
 
       const favorites = await favoritePropertyCollection.find({userId}).toArray();
@@ -189,7 +230,7 @@ async function run() {
       res.send(properties);
     });
 
-    app.post('/api/favorites', async (req, res) => {
+    app.post('/api/favorites', verifyToken, verifyRole('Tenant'), async (req, res) => {
       const existing = await favoritePropertyCollection.findOne({
         userId: req.body.userId,
         propertyId: req.body.propertyId
@@ -211,7 +252,7 @@ async function run() {
       res.send(result);
     });
 
-    app.delete('/api/favorites', async (req, res) => {
+    app.delete('/api/favorites', verifyToken, verifyRole('Tenant'), async (req, res) => {
       const { userId, propertyId } = req.query;
       const result = await favoritePropertyCollection.deleteOne({
         userId,
@@ -318,12 +359,12 @@ async function run() {
       });
     });
 
-    app.get('/api/users', async(req, res) => {
+    app.get('/api/users', verifyToken, verifyRole('Admin'), async(req, res) => {
       const result = await userCollection.find({}).toArray();
       res.send(result);
     });
 
-    app.patch('/api/users', async(req, res) => {
+    app.patch('/api/users', verifyToken, verifyRole('Admin'), async(req, res) => {
       const { userId, newRole } = req.body;
 
       const query = { _id: new ObjectId(userId) };
@@ -339,7 +380,7 @@ async function run() {
       res.send(result);
     });
 
-    app.patch('/api/properties', async (req, res) => {
+    app.patch('/api/properties', verifyToken, verifyRole('Admin'), async (req, res) => {
       const { propertyId, newStatus } = req.body;
 
       const query = { _id: new ObjectId(propertyId) };
@@ -354,7 +395,7 @@ async function run() {
       res.send(result);
     });
 
-    app.patch('/api/properties/:propertyId/rejection', async (req, res) => {
+    app.patch('/api/properties/:propertyId/rejection', verifyToken, verifyRole('Admin'), async (req, res) => {
       const propertyId = req.params.propertyId;
 
       const query = { _id: new ObjectId(propertyId) };
@@ -368,7 +409,7 @@ async function run() {
       res.send(result);
     });
 
-    app.patch('/api/properties/:id', async (req, res) => {
+    app.patch('/api/properties/:id', verifyToken, verifyRole('Admin', 'Owner'), async (req, res) => {
       const id = req.params.id;
 
       const update = req.body;
@@ -382,7 +423,7 @@ async function run() {
       res.send(result);
     });
 
-    app.post('/api/properties', async (req, res) => {
+    app.post('/api/properties', verifyToken, verifyRole('Owner'), async (req, res) => {
       const propertyData = {
         ...req.body,
         createdAt: new Date()
@@ -392,7 +433,7 @@ async function run() {
       res.send(result);
     });
 
-    app.get('/api/properties', async (req, res) => {
+    app.get('/api/properties', verifyToken, verifyRole('Admin'), async (req, res) => {
       const { page = 1, limit = 9 } = req.query;
 
       const skip = (Number(page) - 1) * Number(limit);
@@ -430,7 +471,7 @@ async function run() {
       res.send({ data: result, page: Number(page), totalPage });
     });
 
-    app.get('/api/my-properties', async (req, res) => {
+    app.get('/api/my-properties', verifyToken, verifyRole('Owner'), async (req, res) => {
       const query = {};
       
       if (req.query.ownerId) {
@@ -442,7 +483,12 @@ async function run() {
     });
 
     app.get('/api/properties/featured', async (req, res) => {
-      const result = await propertyCollection.find({}).sort({createdAt: -1}).limit(6).toArray();
+      const result = await propertyCollection
+        .find({})
+        .sort({createdAt: -1})
+        .limit(6)
+        .toArray();
+
       res.send(result);
     });
 
@@ -453,7 +499,7 @@ async function run() {
       res.send(result);
     });
 
-    app.delete('/api/properties/:id', async (req, res) => {
+    app.delete('/api/properties/:id', verifyToken, verifyRole('Admin', 'Owner'), async (req, res) => {
       const id = req.params.id;
 
       const query = { _id: new ObjectId(id) };
