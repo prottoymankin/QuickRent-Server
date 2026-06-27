@@ -257,6 +257,25 @@ async function run() {
       res.send(result);
     });
 
+    app.get('/api/properties/sort', async (req, res) => {
+      const { sort } = req.query;
+
+      let sortOption = { createdAt: -1 };
+
+      if (sort === 'low-to-high') {
+        sortOption = { rent: 1 };
+      } else if (sort === 'high-to-low') {
+        sortOption = { rent: -1 };
+      }
+
+      const result = await propertyCollection
+        .find({ status: 'Approved' })
+        .sort(sortOption)
+        .toArray();
+
+      res.send(result);
+    });
+
     app.get('/api/users', async(req, res) => {
       const result = await userCollection.find({}).toArray();
       res.send(result);
