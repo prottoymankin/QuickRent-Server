@@ -246,6 +246,17 @@ async function run() {
       res.send(result);
     });
 
+    app.get('/api/properties/filter/type', async (req, res) => {
+      const { propertyType } = req.query;
+
+      const result = await propertyCollection.find({
+        status: 'Approved',
+        propertyType,
+      }).toArray();
+
+      res.send(result);
+    });
+
     app.get('/api/users', async(req, res) => {
       const result = await userCollection.find({}).toArray();
       res.send(result);
