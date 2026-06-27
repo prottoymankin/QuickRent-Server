@@ -220,6 +220,32 @@ async function run() {
       res.send(result);
     });
 
+    app.get('/api/properties/search', async (req, res) => {
+      const { q } = req.query;
+
+      const query = {
+        status: 'Approved',
+        $or: [
+          {
+            propertyTitle: {
+              $regex: q,
+              $options: 'i',
+            },
+          },
+          {
+            location: {
+              $regex: q,
+              $options: 'i',
+            },
+          },
+        ],
+      };
+
+      const result = await propertyCollection.find(query).sort({createdAt: -1}).toArray();
+
+      res.send(result);
+    });
+
     app.get('/api/users', async(req, res) => {
       const result = await userCollection.find({}).toArray();
       res.send(result);
