@@ -221,7 +221,9 @@ async function run() {
     });
 
     app.get('/api/properties/search', async (req, res) => {
-      const { q } = req.query;
+      const { q, page = 1, limit = 9 } = req.query;
+
+      const skip = (Number(page) - 1) * Number(limit);
 
       const query = {
         status: 'Approved',
@@ -241,24 +243,55 @@ async function run() {
         ],
       };
 
-      const result = await propertyCollection.find(query).sort({createdAt: -1}).toArray();
+      const result = await propertyCollection
+        .find(query)
+        .sort({createdAt: -1})
+        .skip(skip)
+        .limit(Number(limit))
+        .toArray();
 
-      res.send(result);
+      const totalData = await propertyCollection.countDocuments(query);
+      const totalPage = Math.ceil(totalData / Number(limit));
+
+      res.send({
+        data: result,
+        page: Number(page),
+        totalPage
+      });
     });
 
     app.get('/api/properties/filter/type', async (req, res) => {
-      const { propertyType } = req.query;
+      const { propertyType, page = 1, limit = 9 } = req.query;
+
+      const skip = (Number(page) - 1) * Number(limit);
 
       const result = await propertyCollection.find({
         status: 'Approved',
         propertyType,
-      }).toArray();
+      })
+      .sort({ createdAt: -1} )
+      .skip(skip)
+      .limit(Number(limit))
+      .toArray();
 
-      res.send(result);
+      const totalData = await propertyCollection.countDocuments({
+        status: 'Approved',
+        propertyType,
+      });
+
+      const totalPage = Math.ceil(totalData / Number(limit));
+
+      res.send({
+        data: result,
+        page: Number(page),
+        totalPage
+      });
     });
 
     app.get('/api/properties/sort', async (req, res) => {
-      const { sort } = req.query;
+      const { sort, page = 1, limit = 9 } = req.query;
+
+      const skip = (Number(page) - 1) * Number(limit);
 
       let sortOption = { createdAt: -1 };
 
@@ -271,9 +304,18 @@ async function run() {
       const result = await propertyCollection
         .find({ status: 'Approved' })
         .sort(sortOption)
+        .skip(skip)
+        .limit(Number(limit))
         .toArray();
 
-      res.send(result);
+      const totalData = await propertyCollection.countDocuments({ status: 'Approved' });
+      const totalPage = Math.ceil(totalData / Number(limit));
+
+      res.send({
+        data: result,
+        page: Number(page),
+        totalPage
+      });
     });
 
     app.get('/api/users', async(req, res) => {
@@ -351,14 +393,41 @@ async function run() {
     });
 
     app.get('/api/properties', async (req, res) => {
-      const result = await propertyCollection.find({}).sort({ createdAt: -1 }).toArray();
-      res.send(result);
+      const { page = 1, limit = 9 } = req.query;
+
+      const skip = (Number(page) - 1) * Number(limit);
+
+      const result = await propertyCollection
+        .find({})
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(Number(limit))
+        .toArray();
+
+      const totalData = await propertyCollection.countDocuments();
+      const totalPage = Math.ceil(totalData / Number(limit));
+
+      res.send({ data: result, page: Number(page), totalPage });
     });
 
     app.get('/api/properties/approved', async (req, res) => {
+      const { page = 1, limit = 9 } = req.query;
+
+      const skip = (Number(page) - 1) * Number(limit);
+
       const query = { status: 'Approved' };
-      const result = await propertyCollection.find(query).sort({ createdAt: -1 }).toArray();
-      res.send(result);
+
+      const result = await propertyCollection
+        .find(query)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(Number(limit))
+        .toArray();
+      
+      const totalData = await propertyCollection.countDocuments(query);
+      const totalPage = await Math.ceil(totalData/Number(limit));
+
+      res.send({ data: result, page: Number(page), totalPage });
     });
 
     app.get('/api/my-properties', async (req, res) => {
