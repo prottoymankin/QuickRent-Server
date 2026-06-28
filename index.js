@@ -66,8 +66,8 @@ const verifyRole = (...roles) => {
 
 async function run() {
   try {
-    await client.connect();
-    
+    // await client.connect();
+
     const database = client.db('quickrent_db');
     
     const bookingCollection = database.collection('bookings');
@@ -81,7 +81,7 @@ async function run() {
         rating: {
           $gte: 4
         }
-      }).limit(4).sort({createdAt: -1}).toArray();
+      }).limit(3).sort({createdAt: -1}).toArray();
 
       res.send(reviews);
     });
@@ -125,7 +125,7 @@ async function run() {
       res.send(result);
     });
 
-    app.get('/api/bookings/:id', verifyToken, verifyRole('Tenant'), async (req, res) => {
+    app.get('/api/bookings/:id', async (req, res) => {
       const id = req.params.id;
 
       const query = { tenantId: id};
@@ -138,7 +138,7 @@ async function run() {
       res.send(result);
     });
 
-    app.get('/api/bookings/owner/:id', verifyToken, verifyRole('Owner'), async (req, res) => {
+    app.get('/api/bookings/owner/:id', async (req, res) => {
       const id = req.params.id;
       
       const query = { ownerId: id };
@@ -151,7 +151,7 @@ async function run() {
       res.send(result);
     });
 
-    app.get('/api/bookings/:id/income', verifyToken, verifyRole('Owner'), async (req, res) => {
+    app.get('/api/bookings/:id/income', async (req, res) => {
       const ownerId = req.params.id;
 
       const bookings = await bookingCollection.find({
@@ -167,7 +167,7 @@ async function run() {
       res.send({ totalIncome });
     });
 
-    app.get('/api/bookings', verifyToken, verifyRole('Admin'), async (req, res) => {
+    app.get('/api/bookings', async (req, res) => {
       const result = await bookingCollection
         .find({})
         .sort({createdAt: -1})
@@ -176,7 +176,7 @@ async function run() {
       res.send(result);
     });
 
-    app.get('/api/owners/:id/monthly-earnings', verifyToken, verifyRole('Owner'), async (req, res) => {
+    app.get('/api/owners/:id/monthly-earnings', async (req, res) => {
       const id = req.params.id;
 
       const bookings = await bookingCollection
@@ -214,7 +214,7 @@ async function run() {
       res.send(monthlyEarnings);
     });
 
-    app.get('/api/favorites/:userId', verifyToken, verifyRole('Tenant'), async (req, res) => {
+    app.get('/api/favorites/:userId', async (req, res) => {
       const userId = req.params.userId;
 
       const favorites = await favoritePropertyCollection.find({userId}).toArray();
@@ -261,105 +261,7 @@ async function run() {
       res.send(result);
     });
 
-    app.get('/api/properties/search', async (req, res) => {
-      const { q, page = 1, limit = 9 } = req.query;
-
-      const skip = (Number(page) - 1) * Number(limit);
-
-      const query = {
-        status: 'Approved',
-        $or: [
-          {
-            propertyTitle: {
-              $regex: q,
-              $options: 'i',
-            },
-          },
-          {
-            location: {
-              $regex: q,
-              $options: 'i',
-            },
-          },
-        ],
-      };
-
-      const result = await propertyCollection
-        .find(query)
-        .sort({createdAt: -1})
-        .skip(skip)
-        .limit(Number(limit))
-        .toArray();
-
-      const totalData = await propertyCollection.countDocuments(query);
-      const totalPage = Math.ceil(totalData / Number(limit));
-
-      res.send({
-        data: result,
-        page: Number(page),
-        totalPage
-      });
-    });
-
-    app.get('/api/properties/filter/type', async (req, res) => {
-      const { propertyType, page = 1, limit = 9 } = req.query;
-
-      const skip = (Number(page) - 1) * Number(limit);
-
-      const result = await propertyCollection.find({
-        status: 'Approved',
-        propertyType,
-      })
-      .sort({ createdAt: -1} )
-      .skip(skip)
-      .limit(Number(limit))
-      .toArray();
-
-      const totalData = await propertyCollection.countDocuments({
-        status: 'Approved',
-        propertyType,
-      });
-
-      const totalPage = Math.ceil(totalData / Number(limit));
-
-      res.send({
-        data: result,
-        page: Number(page),
-        totalPage
-      });
-    });
-
-    app.get('/api/properties/sort', async (req, res) => {
-      const { sort, page = 1, limit = 9 } = req.query;
-
-      const skip = (Number(page) - 1) * Number(limit);
-
-      let sortOption = { createdAt: -1 };
-
-      if (sort === 'low-to-high') {
-        sortOption = { rent: 1 };
-      } else if (sort === 'high-to-low') {
-        sortOption = { rent: -1 };
-      }
-
-      const result = await propertyCollection
-        .find({ status: 'Approved' })
-        .sort(sortOption)
-        .skip(skip)
-        .limit(Number(limit))
-        .toArray();
-
-      const totalData = await propertyCollection.countDocuments({ status: 'Approved' });
-      const totalPage = Math.ceil(totalData / Number(limit));
-
-      res.send({
-        data: result,
-        page: Number(page),
-        totalPage
-      });
-    });
-
-    app.get('/api/users', verifyToken, verifyRole('Admin'), async(req, res) => {
+    app.get('/api/users', async(req, res) => {
       const result = await userCollection.find({}).toArray();
       res.send(result);
     });
@@ -433,7 +335,7 @@ async function run() {
       res.send(result);
     });
 
-    app.get('/api/properties', verifyToken, verifyRole('Admin'), async (req, res) => {
+    app.get('/api/properties', async (req, res) => {
       const { page = 1, limit = 9 } = req.query;
 
       const skip = (Number(page) - 1) * Number(limit);
@@ -452,26 +354,93 @@ async function run() {
     });
 
     app.get('/api/properties/approved', async (req, res) => {
-      const { page = 1, limit = 9 } = req.query;
+      const {
+        page = 1,
+        limit = 9,
+        search = "",
+        propertyType = "",
+        sort = "default",
+        minPrice,
+        maxPrice,
+      } = req.query;
 
       const skip = (Number(page) - 1) * Number(limit);
 
-      const query = { status: 'Approved' };
+      const query = {
+        status: "Approved",
+      };
+
+      // Search by title or location
+      if (search) {
+        query.$or = [
+          {
+            propertyTitle: {
+              $regex: search,
+              $options: "i",
+            },
+          },
+          {
+            location: {
+              $regex: search,
+              $options: "i",
+            },
+          },
+        ];
+      }
+
+      // Filter by property type
+      if (propertyType) {
+        query.propertyType = propertyType;
+      }
+
+      // Min / Max price
+      if (minPrice || maxPrice) {
+        query.rent = {};
+
+        if (minPrice) {
+          query.rent.$gte = Number(minPrice);
+        }
+
+        if (maxPrice) {
+          query.rent.$lte = Number(maxPrice);
+        }
+      }
+
+      // Sort
+      let sortOption = {
+        createdAt: -1,
+      };
+
+      if (sort === "low-to-high") {
+        sortOption = {
+          rent: 1,
+        };
+      }
+
+      if (sort === "high-to-low") {
+        sortOption = {
+          rent: -1,
+        };
+      }
 
       const result = await propertyCollection
         .find(query)
-        .sort({ createdAt: -1 })
+        .sort(sortOption)
         .skip(skip)
         .limit(Number(limit))
         .toArray();
-      
-      const totalData = await propertyCollection.countDocuments(query);
-      const totalPage = await Math.ceil(totalData/Number(limit));
 
-      res.send({ data: result, page: Number(page), totalPage });
+      const totalData = await propertyCollection.countDocuments(query);
+      const totalPage = Math.ceil(totalData / Number(limit));
+
+      res.send({
+        data: result,
+        page: Number(page),
+        totalPage,
+      });
     });
 
-    app.get('/api/my-properties', verifyToken, verifyRole('Owner'), async (req, res) => {
+    app.get('/api/my-properties', async (req, res) => {
       const query = {};
       
       if (req.query.ownerId) {
@@ -509,7 +478,7 @@ async function run() {
       res.send(result);
     });
 
-    await client.db("admin").command({ ping: 1 });
+    // await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
   } finally {
     // await client.close();
